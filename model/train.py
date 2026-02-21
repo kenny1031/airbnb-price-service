@@ -1,5 +1,6 @@
 from typing import Dict
-
+import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import OneHotEncoder
@@ -92,14 +93,37 @@ def save_model(pipeline: Pipeline) -> None:
     joblib.dump(pipeline, MODEL_PATH)
     print(f"Model saved to {MODEL_PATH}")
 
+def generate_feature_importance(pipeline: Pipeline) -> None:
+    """Visualise the effect of features toward the prediction"""
+    model = pipeline.named_steps["xgboost"]
+    preprocessor = pipeline.named_steps["preprocessor"]
+
+    # Get feature names after one-hot encoding
+    num_features = preprocessor.transformers_[0][2]
+    cat_encoder = preprocessor.transformers_[1][1]
+    cat_features = preprocessor.transformers_[1][2]
+
+    encoded_cat_features = cat_encoder.get_feature_names_out(cat_features)
+    all_feature_names = list(num_features) + list(encoded_cat_features)
+    importances = model.feature_importances_
+
+    # Sort top 20
+    indices = np.argsort(importances)[::-1][:20]
+    top_features = np.array(all_feature_names)[indices]
+    top_importances = importances[indices]
+
+    plt.figure(figsize=(10, 6))
+    plt.barh(top_features[::-1], top_importances[::-1])
+    plt.xlabel("Importance")
+    plt.title("Top 20 Feature Importances")
+    plt.tight_layout()
+    plt.savefig("feature_importance.png")
+    plt.close()
+
 def main():
-    # Load raw data
+    # Load data and split features and target
     df = pd.read_csv(DATA_PATH)
-
-    # Clean and feature engineering
     df = clean_and_engineer(df)
-
-    # Split features and target
     X, y = split_xy(df)
 
     # Build pipelines
@@ -120,6 +144,7 @@ def main():
 
     # Fit on full dataset and save
     optimal_pipeline.fit(X, y)
+    generate_feature_importance(optimal_pipeline)
     save_model(optimal_pipeline)
 
 if __name__ == "__main__":
