@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class RentalRequest(BaseModel):
     accommodates: int
@@ -15,3 +15,6 @@ class RentalRequest(BaseModel):
     neighbourhood_cleansed: str
     cancellation_policy: str
     instant_bookable: str
+
+class RentalResponse(BaseModel):
+    predicted_price: float = Field(..., example=137.00)
