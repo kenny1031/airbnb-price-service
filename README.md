@@ -137,9 +137,6 @@ airbnb-price-service/
 │   ├── model.pkl
 │   └── feature_importance.png
 │
-├── notebooks/
-│   └── eda.ipynb
-│
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
