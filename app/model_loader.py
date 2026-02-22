@@ -2,12 +2,14 @@ import os
 import joblib
 from sqlalchemy import create_engine, text
 
-def get_engine():
-    db_url = os.getenv("DATABASE_URL")
-    if not db_url:
-        raise RuntimeError("DATABASE_URL not set")
-    return create_engine(db_url)
+_engine = None
+DB_URL = os.getenv("DATABASE_URL")
 
+def get_engine():
+    global _engine
+    if _engine is None:
+        _engine = create_engine(DB_URL)
+    return _engine
 
 def load_latest_model():
     engine = get_engine()

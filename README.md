@@ -1,101 +1,95 @@
-# Airbnb Price Prediction API
-## Overview
-This project implements a **production-ready machine learning inference service** for predicting Airbnb rental prices in Sydney.
+# Airbnb Price Prediction Service
 
-The system covers the full ML lifecycle:
-* Data preprocessing and feature engineering
-* Model training and cross-validation
-* Model selection (Random Forest vs XGBoost)
-* Feature importance analysis
-* Model serialisation
-* FastAPI-based inference service
-* Dockerised deployment
+A production-style machine learning API service for predicting Airbnb listing prices, built with FastAPI, PostgreSQL, Docker, and a versioned model registry.
 
-The final result is a containerised ML microservice that can serve real-time rental price predictions.
+## Key Features
 
-## Problem Statement
-Given listing-level features such as:
-* Property type
-* Room type
-* Location (neighbourhood)
-* Number of bedrooms and bathrooms
-* Review scores
-* Availability
+- Versioned model registry stored in PostgreSQL
+- Serialised sklearn pipeline with joblib
+- FastAPI prediction endpoint
+- Fully Dockerised (API + Postgres)
+- Unit & integration tests with pytest
+- Dependency injection for testable architecture
 
-We aim to predict the expected nightly rental price.
+## Tech Stack
 
-## Dataset
-Sydney Airbnb Open Data (https://www.kaggle.com/datasets/tylerx/sydney-airbnb-open-data)
+- Python 3.10
+- FastAPI
+- PostgreSQL
+- SQLAlchemy
+- Scikit-learn
+- Docker & Docker Compose
+- Pytest
 
-After cleaning:
-* Around 36k listings
-* Mixed numerical and categorical features
-* High-cardinality categorical variables (e.g. neighbourhood)
-
-## Feature Engineering
-Key preprocessing steps:
-* Removed extreme outliers in price
-* Log transformation of target variable (`log1p(price)`)
-* Selection of relevant numerical and categorical features
-* One-hot encoding for categorical variables
-* Training-serving consistency ensured via `sklearn.pipeline.Pipeline`
-
-This avoids training-serving skew and ensures inference consistency.
-
-## Model Training and Selection
-Two models were compared:
-* Random Forest Regressor
-* XGBoost Regressor
-
-Evaluation strategy:
-* 80/20 hold-out split
-* 5-fold cross-validation
-
-Final performance:
-* Hold-out RMSE (log scale): 0.0.4073
-* 5-fold CV RMSE (log scale): 0.4127
-
-XGBoost was selected as the final model based on cross-validation performance.
-
-## Global Feature Importance
-Feature importance analysis was performed using the trained XGBoost model.
-
-Top contributing features:
-* `room_type_Entire home/apt`
-* `bedrooms`
-* `room_type_Private room`
-* Selected high-value neighbourhoods
-
-This indicates that property type and room configuration are dominant pricing factors, while location contributes in a distributed manner across suburbs.
-
-The feature importance plot is stored at:
-```Bash
-model/feature_importance.png
-```
-
-## System Architecture
+## Project Structure
 ```text
-Client -> FastAPI -> Pydantic Validation -> Sklearn Pipeline -> Model -> Prediction
+airbnb-price-service/
+│
+├── app/                 # FastAPI application
+│   ├── main.py          # API entry point
+│   ├── schemas.py       # Pydantic request/response models
+│   ├── model_service.py # Prediction logic
+│   └── model_loader.py  # Model registry loader
+│
+├── model/
+│   ├── train.py
+│   └── preprocess.py
+│
+├── models/ # Saved model artifacts
+│
+├── db/ # Database schema
+│   └── schema.sql
+│
+├── scripts/
+│   └── load_data.py
+│
+├── tests/ # Unit & integration tests
+│   ├── unit
+│   │   ├── test_model_loader.py
+│   │   └── test_preprocess.py   
+│   └── integration
+│       └── test_predict_api.py
+│
+├── docker-compose.yml
+├── Dockerfile
+├── pytest.ini
+├── requirements.txt
+└── README.md
 ```
-Key design decisions:
-* Full preprocessing + model wrapped in a single pipeline
-* Model loaded once at startup
-* Strict request/response schema via Pydantic
-* Health check endpoint for service monitoring
-* Docker containerisation for reproducibility
 
-## API Endpoints
-### Health Check
-```text
-GET /health
-```
-Returns service status.
+## Architecture Overview
 
-### Predict Rental Price
-```text
-POST /predict
+1. Model is trained using `model/train.py`
+2. Trained model is serialized and stored on disk
+3. Model metadata (version, rmse, file_path) is saved in PostgreSQL
+4. API loads the latest model at startup
+5. `/predict` endpoint returns predicted price
+
+The system follows a clean separation of concerns with dependency injection for testability.
+
+## Run with Docker
+```bash
+docker compose build
+docker compose up
 ```
-Example request:
+API available at:
+```text
+http://localhost:8000/docs
+```
+
+## Train a Model
+```bash
+docker compose run api python -m model.train
+```
+
+## Run Tests
+```bash
+python -m pytest -v
+```
+- Unit tests mock database engine
+- Integration tests mock prediction pipeline
+
+## Example Prediction Request
 ```json
 {
   "accommodates": 2,
@@ -114,67 +108,10 @@ Example request:
   "instant_bookable": "t"
 }
 ```
-Response:
-```json
-{
-  "predicted_price": 137.08
-}
-```
-The API returns the predicted nightly price in original scale.
-
-## Project Structure
-```text
-airbnb-price-service/
-│
-├── app/
-│   ├── main.py
-│   ├── schemas.py
-│   └── model_service.py
-│
-├── model/
-│   ├── train.py
-│   ├── preprocess.py
-│   ├── model.pkl
-│   └── feature_importance.png
-│
-├── Dockerfile
-├── requirements.txt
-└── README.md
-```
-## Running Locally
-```Bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-Open:
-```Bash
-http://127.0.0.1:8000/docs
-```
-
-## Running with Docker
-Build image:
-```Bash
-docker build -t airbnb-price-api .
-```
-Run container:
-```Bash
-docker run -p 8000:8000 airbnb-price-api
-```
-Access:
-```Bash
-http://localhost:8000/docs
-```
-
-## Engineering Highlights
-* Training-serving consistency via `sklearn.pipeline.Pipeline`
-* Strict I/O validation using Pydantic
-* Model selection based on cross-validation
-* Containerised deployment
-* Feature importance analysis for interpretability
 
 ## Future Improvements
-* SHAP-based local interpretability
-* Model performance monitoring
-* Request logging and structured tracing
-* CI/CD integration
-* Caching layer for repeated predictions
+
+- Add CI/CD with GitHub Actions
+- Add model performance tracking dashboard
+- Support A/B model serving
+- Implement model rollback endpoint

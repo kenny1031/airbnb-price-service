@@ -14,8 +14,10 @@ def load_model():
     global pipeline
     pipeline = load_latest_model()
 
-# Load once when module imports
-load_model()
+def get_pipeline():
+    if pipeline is None:
+        raise RuntimeError("Model not loaded")
+    return pipeline
 
 def predict_price(data: dict) -> float:
     if pipeline is None:
