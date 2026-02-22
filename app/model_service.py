@@ -4,17 +4,22 @@ This file is for:
 - Prediction
 - Transforms log back to the original
 """
-import joblib
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from app.model_loader import load_latest_model
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "model" / "model.pkl"
+pipeline = None
 
-pipeline = joblib.load(MODEL_PATH)
+def load_model():
+    global pipeline
+    pipeline = load_latest_model()
+
+# Load once when module imports
+load_model()
 
 def predict_price(data: dict) -> float:
+    if pipeline is None:
+        raise RuntimeError("Model not loaded")
     df = pd.DataFrame([data])
     log_pred = pipeline.predict(df)[0]
     price = np.expm1(log_pred)

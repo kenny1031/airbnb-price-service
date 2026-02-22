@@ -18,7 +18,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
 
-from preprocess import clean_and_engineer, split_xy, NUM_FEATURES, CAT_FEATURES
+from model.preprocess import clean_and_engineer, split_xy, NUM_FEATURES, CAT_FEATURES
 
 # Database Connection
 DB_URL = os.getenv("DATABASE_URL")

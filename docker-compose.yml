@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:14
+    container_name: airbnb-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: kennyyu
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: airbnb_ml
+    ports:
+      - "55432:5432"
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: airbnb-api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://kennyyu:postgres123@db:5432/airbnb_ml
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+
+volumes:
+  postgres_data:
